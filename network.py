@@ -32,7 +32,7 @@ class FNN:
         if gradient_method not in supported_gradient_methods:
             raise ValueError(f"Provided gradient_method is invalid, use one of the supported methods: {supported_gradient_methods}")
 
-        self.gradient_method
+        self.gradient_method = gradient_method
 
     def add(self, layer): # add another layer to list of layers
         
@@ -104,3 +104,6 @@ class FNN:
             y_pred[i,:] = self.__forward_pass(x)
         
         return y_pred
+    
+
+test = FNN()
