@@ -104,6 +104,3 @@ class FNN:
             y_pred[i,:] = self.__forward_pass(x)
         
         return y_pred
-    
-
-test = FNN()
