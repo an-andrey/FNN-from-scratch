@@ -40,28 +40,13 @@ class Layer:
             raise ValueError("Make sure forward pass has been made")
 
         #computing the gradients and updating each weight and bias individually
-        for j in range(self.w.shape[0]):
-            
-            #updating each bias of the current layer
-            b_grad = self.error[j]
-
-            self.b[j] -= lr * b_grad
-
-            #updating each weight for each neuron in the previous layer
-            for k in range(self.w.shape[1]):
-                w_grad = self.error[j]*self.prev_layer.a[k]
-
-                self.w[j][k] -= lr * w_grad
+        self.b -= lr * self.error
+        #the outer product creates a matrix, where every row i = self.error[i] * self.prev_layer.a
+        self.w -= lr * np.outer(self.error, self.prev_layer.a) 
 
         #Finally, updating the error for the previous layer - if the previous one isn't the input layer
         if not isinstance(self.prev_layer, InputLayer):
-            for k in range(self.prev_layer.error.shape[0]):
-                error_grad = 0 
-
-                for j in range(self.w.shape[0]): #the k_th activation of prev layer affects all neurons of currrent layer
-                    error_grad += self.error[j]*self.w[j][k]*self.prev_layer.activation_fxn_dv(self.prev_layer.z[k])
-
-                self.prev_layer.error[k] = error_grad
+            self.prev_layer.error = self.prev_layer.activation_fxn_dv(self.prev_layer.z) * (self.w.T @ self.error) # k x 1 * (  k x j @ j x 1 ) -> k x 1
 
 class InputLayer: 
     def __init__(self, size):
