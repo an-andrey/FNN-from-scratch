@@ -3,19 +3,23 @@ import utils
 
 #Instead of creating each individual neurons, treating layers only
 class Layer:
-    def __init__(self, size, activation_fxn = utils.sigmoid, activation_fxn_dv = None):
+    def __init__(self, size, activation_fxn = utils.sigmoid, activation_fxn_dv = utils.identity_dv):
         self.size = size
         self.b = np.zeros(shape=self.size)
         self.w = None # constructed in the .build() method, once the previous layer is connected
         self.activation_fxn = activation_fxn
         self.activation_fxn_dv = None
 
+        #future implementation would be to put all functions in a dict for efficency
         if self.activation_fxn is utils.sigmoid: 
             self.activation_fxn_dv = utils.sigmoid_dv
         
         elif self.activation_fxn is utils.relu: 
             self.activation_fxn_dv = utils.relu_dv
-        
+
+        elif self.activation_fxn is utils.identity: 
+            self.activation_fxn_dv = utils.identity_dv
+
         elif activation_fxn_dv is None: 
             raise ValueError("If the provided activation function isn't part of the supported functions, please provided the activation function derivative")
 
