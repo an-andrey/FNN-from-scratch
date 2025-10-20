@@ -3,12 +3,25 @@ import utils
 
 #Instead of creating each individual neurons, treating layers only
 class Layer:
-    def __init__(self, size, activation_fxn = utils.sigmoid, activation_fxn_dv = utils.sigmoid_dv):
+    def __init__(self, size, activation_fxn = utils.sigmoid, activation_fxn_dv = None):
         self.size = size
         self.b = np.zeros(shape=self.size)
         self.w = None # constructed in the .build() method, once the previous layer is connected
         self.activation_fxn = activation_fxn
-        self.activation_fxn_dv = activation_fxn_dv # Eventually could implement auto-diff, but manual inputs for now
+        self.activation_fxn_dv = None
+
+        if self.activation_fxn is utils.sigmoid: 
+            self.activation_fxn_dv = utils.sigmoid_dv
+        
+        elif self.activation_fxn is utils.relu: 
+            self.activation_fxn_dv = utils.relu_dv
+        
+        elif activation_fxn_dv is None: 
+            raise ValueError("If the provided activation function isn't part of the supported functions, please provided the activation function derivative")
+
+        else: 
+            self.activation_fxn_dv = activation_fxn_dv
+
         self.z = None # neurons' signals
         self.a = None # neurons' activations
         self.error = np.zeros(shape=size) # neurons' errors
