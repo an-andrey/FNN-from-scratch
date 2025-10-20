@@ -8,7 +8,7 @@ class FNN:
         if layers is None: 
             self.input_layer = None
             self.output_layer = None
-            self.layers = []
+            self.hidden_layers = []
             self.size = 0
 
         #otherwise, needs to pass at least 2 layers, 1 input and 1 output
@@ -19,12 +19,12 @@ class FNN:
                 raise e
             
             for layer in layers[1:]:
-                if isinstance(layer, Layer):
+                if not isinstance(layer, Layer):
                     raise e
                 
 
             self.input_layer = layers[0]
-            self.layers = layers[1:]
+            self.hidden_layers = layers[1:] #the output layer will only be defined when building the network with build()
             self.size = len(layers)
 
         supported_gradient_methods = ["GD"]
@@ -46,37 +46,52 @@ class FNN:
             if not isinstance(layer, Layer): 
                 raise TypeError("only instances of the Layer class can be added")
             
-            self.layers.append(layer)
+            self.hidden_layers.append(layer)
 
         self.size += 1
 
     # builds the network by making backward connections between the layers
     def build(self): 
-        self.output_layer = self.layers[-1]
-        self.layers[0].set_prev_layer(self.input_layer)
+        self.output_layer = self.hidden_layers[-1]
+        self.output_layer.set_output_layer()
+        self.hidden_layers = self.hidden_layers[:-1]
 
-        for i in range(1, len(self.layers)): 
-            self.layers[i].set_prev_layer(self.layers[i-1])
+        if len(self.hidden_layers) != 0:
+            self.output_layer.set_prev_layer(self.hidden_layers[-1])
+            self.hidden_layers[0].set_prev_layer(self.input_layer)
+
+            for i in range(1, len(self.hidden_layers)): 
+                self.hidden_layers[i].set_prev_layer(self.hidden_layers[i-1])
         
+        else: 
+            self.output_layer.set_prev_layer(self.input_layer)
 
     # given a datapoint (x) makes a forward pass
     # returns the output of the output layer
     def __forward_pass(self, x):
         self.input_layer.a = x
 
-        for layer in self.layers: 
+        for layer in self.hidden_layers + [self.output_layer]: 
             layer.compute_activations()
         
         return self.output_layer.a
 
     # once the forward pass is done, uses the target y to update the parameters of each layer
     def __backward_pass(self, y, lr):
-        self.output_layer.error = utils.mse(self.output_layer.a, y) # computing MSE between fwd pass output and target
+        self.output_layer.error = (self.output_layer.a - y)*self.output_layer.activation_fxn_dv(self.output_layer.z)
+        self.output_layer.update_parameters(lr)
 
-        for i in range(self.size - 1, -1, -1):
-            self.layers[i].update_parameters(lr)
 
-    def fit(self, X_train, y_train, lr): 
+        for i in range(len(self.hidden_layers) - 1, -1, -1): #going layer by layer, backwards
+            self.hidden_layers[i].update_parameters(lr)
+
+    def fit(self, X_train, y_train, lr=0.1): 
+        if X_train.ndim == 1: 
+            X_train = X_train[:,None]
+
+        if y_train.ndim == 1: 
+            y_train = y_train[:,None]
+
         if X_train.shape[1] != self.input_layer.size: 
             raise ValueError(f"Training set of dimension {X_train.shape} incompatible with input layer of size {self.input_layer.size}")
 
@@ -88,10 +103,13 @@ class FNN:
             y = y_train[i, :]
 
             self.__forward_pass(x)
-            self.__backward_pass(y)
+            self.__backward_pass(y, lr)
 
     # Given a test set, computes the prediction of the network for every datapoint
     def predict(self, X_test):
+        if X_test.ndim == 1: 
+            X_test = X_test[:,None]
+
         if X_test.shape[1] != self.input_layer.size: 
             raise ValueError(f"Test set of dimension {X_test.shape} incompatible with input layer of size {self.input_layer.size}")
         
@@ -99,8 +117,15 @@ class FNN:
         
         for i in range(X_test.shape[0]): 
             x = X_test[i, :]
-            y = X_test[i, :]
             
             y_pred[i,:] = self.__forward_pass(x)
         
         return y_pred
+    
+
+    def print_weights(self):
+        for i, layer in enumerate(self.hidden_layers + [self.output_layer]):
+            print(f"Layer {i}")
+            print(f"weights: {layer.w}")
+            print(f"biases: {layer.b}")
+            print("-"*25)
